@@ -2,19 +2,24 @@
   "name": "nextjs-template",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "apps": "node scripts/run-app.mjs list",
+    "dev": "node scripts/run-app.mjs dev",
+    "build": "node scripts/run-app.mjs build",
+    "start": "node scripts/run-app.mjs start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/run-app.mjs typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "preview": "node scripts/run-app.mjs preview",
+    "deploy": "node scripts/run-app.mjs deploy",
+    "upload": "node scripts/run-app.mjs upload",
+    "cf-typegen": "node scripts/run-app.mjs cf-typegen"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.2",
