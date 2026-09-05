@@ -29,7 +29,7 @@ export function PasswordRequirements({
           key={rule.label}
           className={cn(
             "text-muted-foreground flex items-center gap-2",
-            rule.met && "text-emerald-600"
+            rule.met && "text-success"
           )}
         >
           <Check className={cn("size-3.5", !rule.met && "opacity-30")} />

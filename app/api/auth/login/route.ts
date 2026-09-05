@@ -22,12 +22,12 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
     );
     const payload = await readJson(backendResponse);
+    const { credential, safePayload } = separateCredential(payload);
 
     if (!backendResponse.ok) {
-      return jsonResponse(payload, { status: backendResponse.status });
+      return jsonResponse(safePayload, { status: backendResponse.status });
     }
 
-    const { credential, safePayload } = separateCredential(payload);
     if (!credential || typeof safePayload.accessToken !== "string") {
       return jsonResponse(
         { message: "The authentication service returned an invalid response." },

@@ -4,11 +4,11 @@ import { Form, Formik } from "formik";
 import { ArrowRight, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import FormField from "@/components/forms/fields/form-field";
+import { FormField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useForgotPassword } from "@/features/auth/hooks/use-auth";
-import { emailSchema } from "@/features/auth/schemas/auth-schemas";
+import { useForgotPassword } from "@/features/auth/hooks";
+import { emailSchema } from "@/features/auth/schemas";
 
 export function ForgotPasswordForm() {
   const router = useRouter();

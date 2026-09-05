@@ -14,11 +14,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ) => (
     <div
       className={cn(
-        "border-input focus-within:border-ring focus-within:ring-ring/30 flex h-10 items-center gap-2 rounded-xl border px-3 transition focus-within:ring-2",
+        "border-input bg-input-background text-input-foreground focus-within:border-ring focus-within:ring-ring/30 has-[input[aria-invalid=true]]:border-destructive flex h-10 items-center gap-2 rounded-xl border px-3 transition focus-within:ring-2",
         wrapperClassName
       )}
     >
-      {startAdornment}
+      {startAdornment && (
+        <span className="text-muted-foreground shrink-0">{startAdornment}</span>
+      )}
       <input
         ref={ref}
         className={cn(
@@ -27,7 +29,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         {...props}
       />
-      {endAdornment}
+      {endAdornment && <span className="shrink-0">{endAdornment}</span>}
     </div>
   )
 );

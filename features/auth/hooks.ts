@@ -1,9 +1,20 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useSyncExternalStore } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { AuthService } from "@/features/auth/services/auth.api";
-import { setSessionState } from "@/features/auth/utils/session-state";
+import { AuthService } from "@/features/auth/api";
+import type { SessionState } from "@/features/auth/types";
+import {
+  getSessionState,
+  setSessionState,
+  subscribeToSession,
+} from "@/features/auth/utils/session-state";
 import { clearAccessToken, setAccessToken } from "@/lib/config/axios";
 import { handleApiError } from "@/lib/utils/error-handler";
 import { QUERY_KEYS } from "@/lib/utils/query-keys";
@@ -29,6 +40,7 @@ export function useVerifyEmail(options: MutationOptions = {}) {
   return useMutation({
     mutationFn: AuthService.verifyEmail,
     onSuccess: options.onSuccess,
+    onError: (error) => handleApiError(error),
   });
 }
 
@@ -122,4 +134,42 @@ export function useRefreshSession() {
       router.push("/login");
     },
   });
+}
+
+let bootstrapPromise: Promise<SessionState> | null = null;
+
+async function bootstrap(queryClient: QueryClient): Promise<SessionState> {
+  try {
+    const { accessToken } = await AuthService.refresh();
+    setAccessToken(accessToken);
+
+    await queryClient.fetchQuery({
+      queryKey: QUERY_KEYS.auth.me,
+      queryFn: ({ signal }) => AuthService.getMe({ signal }),
+      staleTime: 5 * 60 * 1000,
+    });
+
+    return "authenticated";
+  } catch {
+    clearAccessToken();
+    queryClient.removeQueries({ queryKey: QUERY_KEYS.auth.all });
+    return "unauthenticated";
+  }
+}
+
+export function useSessionBootstrap(): SessionState {
+  const queryClient = useQueryClient();
+  const state = useSyncExternalStore<SessionState>(
+    subscribeToSession,
+    getSessionState,
+    () => "pending"
+  );
+
+  useEffect(() => {
+    if (getSessionState() !== "pending") return;
+    bootstrapPromise ??= bootstrap(queryClient);
+    void bootstrapPromise.then(setSessionState);
+  }, [queryClient]);
+
+  return state;
 }

@@ -1,25 +1,28 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import type { ReactNode } from "react";
+import { AuthGateProvider } from "@/components/providers/auth-gate-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
+import { TanstackQueryProvider } from "@/components/providers/tanstack-query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { DemoModeIndicator } from "@/components/shared/demo-mode-indicator";
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthGateProvider } from "@/features/auth/hooks/use-auth-gate";
-import { SessionProvider } from "@/features/auth/hooks/use-session";
-import { getQueryClient } from "@/lib/config/query-client";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(getQueryClient);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <AuthGateProvider>{children}</AuthGateProvider>
-      </SessionProvider>
-      <Toaster />
-      {process.env.NODE_ENV === "development" && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </QueryClientProvider>
+    <ThemeProvider>
+      <TanstackQueryProvider>
+        <SessionProvider>
+          <AuthGateProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </AuthGateProvider>
+        </SessionProvider>
+        <OfflineBanner />
+        <DemoModeIndicator />
+        <Toaster />
+      </TanstackQueryProvider>
+    </ThemeProvider>
   );
 }

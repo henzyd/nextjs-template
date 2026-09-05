@@ -4,7 +4,7 @@ import { Form, Formik } from "formik";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import FormField from "@/components/forms/fields/form-field";
+import { FormField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleButton } from "@/components/ui/google-button";
@@ -13,16 +13,22 @@ import {
   ACCOUNT_SUSPENDED_MESSAGE,
   isGoogleAuthEnabled,
 } from "@/features/auth/constants";
-import { useLogin } from "@/features/auth/hooks/use-auth";
-import { loginSchema } from "@/features/auth/schemas/auth-schemas";
+import { DEMO_AUTH_CREDENTIALS } from "@/features/auth/demo";
+import { useLogin } from "@/features/auth/hooks";
+import { loginSchema } from "@/features/auth/schemas";
 import { startGoogleSignIn } from "@/features/auth/utils/google";
 import { getSafeReturnPath } from "@/features/auth/utils/route-guards";
+import { isDemoMode } from "@/lib/utils/demo";
 
 const oauthErrors: Record<string, string> = {
   google_failed: "Google sign-in failed. Please try again.",
   account_suspended: ACCOUNT_SUSPENDED_MESSAGE,
   account_inactive: ACCOUNT_INACTIVE_MESSAGE,
 };
+
+const initialValues = isDemoMode()
+  ? { ...DEMO_AUTH_CREDENTIALS }
+  : { email: "", password: "" };
 
 export function LoginForm() {
   const router = useRouter();
@@ -42,7 +48,7 @@ export function LoginForm() {
       </CardHeader>
       <CardContent className="space-y-6">
         {verified && (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="border-success/30 bg-success/10 text-success rounded-xl border px-3 py-2 text-sm">
             Email verified. You can now sign in.
           </p>
         )}
@@ -52,7 +58,7 @@ export function LoginForm() {
           </p>
         )}
         <Formik
-          initialValues={{ email: "", password: "" }}
+          initialValues={initialValues}
           validationSchema={loginSchema}
           validateOnBlur={false}
           onSubmit={async (values) => {

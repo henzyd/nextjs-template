@@ -5,14 +5,24 @@ import { Field, type FieldConfig, type FieldProps } from "formik";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils/helpers";
 
-export interface FieldWrapperProps extends Omit<FieldConfig, "name"> {
+export interface FieldWrapperProps extends Omit<
+  FieldConfig,
+  "name" | "children"
+> {
   name: string;
   label?: ReactNode;
   description?: ReactNode;
   required?: boolean;
   hideAsterisk?: boolean;
   wrapperClassName?: string;
-  children: (fieldProps: FieldProps) => ReactNode;
+  children: (fieldProps: FormFieldRenderProps) => ReactNode;
+}
+
+export interface FormFieldRenderProps extends FieldProps {
+  controlId: string;
+  describedBy?: string;
+  errorId: string;
+  invalid: boolean;
 }
 
 export function FormFieldWrapper({
@@ -28,9 +38,16 @@ export function FormFieldWrapper({
   return (
     <Field name={name} {...fieldConfig}>
       {(fieldProps: FieldProps) => {
-        const error = fieldProps.meta.touched
-          ? fieldProps.meta.error
-          : undefined;
+        const error =
+          fieldProps.meta.touched && typeof fieldProps.meta.error === "string"
+            ? fieldProps.meta.error
+            : undefined;
+        const descriptionId = `${name}-description`;
+        const errorId = `${name}-error`;
+        const describedBy =
+          [description ? descriptionId : null, error ? errorId : null]
+            .filter(Boolean)
+            .join(" ") || undefined;
 
         return (
           <div className={cn("space-y-2", wrapperClassName)}>
@@ -44,13 +61,22 @@ export function FormFieldWrapper({
                 )}
               </Label>
             )}
-            {children(fieldProps)}
+            {children({
+              ...fieldProps,
+              controlId: name,
+              describedBy,
+              errorId,
+              invalid: Boolean(error),
+            })}
             {description && !error && (
-              <p className="text-muted-foreground text-xs">{description}</p>
+              <p id={descriptionId} className="text-muted-foreground text-xs">
+                {description}
+              </p>
             )}
             {error && (
               <p
-                id={`${name}-error`}
+                id={errorId}
+                role="alert"
                 className="text-destructive text-xs font-medium"
               >
                 {error}

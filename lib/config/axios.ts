@@ -77,7 +77,10 @@ async function clearSessionAndRedirect(): Promise<void> {
     credentials: "same-origin",
   })
     .catch(() => undefined)
-    .then(() => undefined);
+    .then(() => undefined)
+    .finally(() => {
+      logoutPromise = null;
+    });
   await logoutPromise;
 
   window.location.assign(
@@ -125,6 +128,7 @@ function configureRetry(client: ReturnType<typeof createHttpClient>): void {
     retryDelay: axiosRetry.exponentialDelay,
     shouldResetTimeout: true,
     retryCondition: (error) => {
+      if (axios.isCancel(error)) return false;
       const status = error.response?.status ?? 0;
       if (status >= 400 && status < 500) return false;
       return axiosRetry.isNetworkError(error) || status >= 500;

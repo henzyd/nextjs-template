@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { useSessionBootstrap } from "@/features/auth/hooks/use-session-bootstrap";
+import { useSessionBootstrap } from "@/features/auth/hooks";
 import type { SessionState } from "@/features/auth/types";
 
 const SessionContext = createContext<SessionState | null>(null);

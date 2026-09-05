@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export default function AuthLayout({
   children,
@@ -8,10 +9,11 @@ export default function AuthLayout({
   return (
     <div className="bg-muted/30 min-h-screen">
       <header className="absolute inset-x-0 top-0 z-10">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center px-6">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Link href="/" className="font-semibold tracking-tight">
             Application
           </Link>
+          <ThemeToggle />
         </div>
       </header>
       <main className="flex min-h-screen items-center justify-center px-4 py-24">

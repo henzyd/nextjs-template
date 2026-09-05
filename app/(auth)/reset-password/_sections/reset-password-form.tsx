@@ -5,12 +5,12 @@ import { Form, Formik } from "formik";
 import { ArrowRight, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import FormField from "@/components/forms/fields/form-field";
+import { FormField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordRequirements } from "@/components/ui/password-requirements";
-import { useResetPassword } from "@/features/auth/hooks/use-auth";
-import { resetPasswordSchema } from "@/features/auth/schemas/auth-schemas";
+import { useResetPassword } from "@/features/auth/hooks";
+import { resetPasswordSchema } from "@/features/auth/schemas";
 
 export function ResetPasswordForm() {
   const router = useRouter();

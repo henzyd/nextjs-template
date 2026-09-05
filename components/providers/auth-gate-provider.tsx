@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "@/components/providers/session-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSession } from "@/features/auth/hooks/use-session";
 
 interface AuthGateContextValue {
   ensureAuth: (action?: () => void) => boolean;

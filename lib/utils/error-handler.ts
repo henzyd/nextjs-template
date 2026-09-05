@@ -17,6 +17,23 @@ export function getApiErrorStatus(error: unknown): number | undefined {
   return (error as ErrorWithResponse).response?.status;
 }
 
+function firstMessage(
+  value: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(value) ? value.find(Boolean) : value;
+}
+
+export function getApiErrorMessage(error: unknown): string | undefined {
+  const data = getApiErrorData(error);
+  return (
+    data?.message ??
+    data?.detail ??
+    data?.error ??
+    firstMessage(data?.non_field_errors) ??
+    firstMessage(data?.nonFieldErrors)
+  );
+}
+
 export function isApiUnreachableError(error: AxiosError): boolean {
   if (error.response || error.code === "ERR_CANCELED") return false;
   return ["ERR_NETWORK", "ECONNABORTED"].includes(error.code ?? "");
@@ -39,7 +56,6 @@ export function handleApiError(
     return;
   }
 
-  const data = getApiErrorData(error);
   const defaults: Record<number, string> = {
     400: "Please check your input and try again.",
     401: "Your session is not authorized.",
@@ -51,8 +67,7 @@ export function handleApiError(
 
   notifyError({
     message:
-      data?.detail ??
-      data?.message ??
+      getApiErrorMessage(error) ??
       (status ? defaults[status] : undefined) ??
       "The request could not be completed.",
   });

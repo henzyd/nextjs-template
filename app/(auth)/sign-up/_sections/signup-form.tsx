@@ -5,14 +5,14 @@ import { Form, Formik } from "formik";
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import FormField from "@/components/forms/fields/form-field";
+import { FormField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleButton } from "@/components/ui/google-button";
 import { PasswordRequirements } from "@/components/ui/password-requirements";
 import { isGoogleAuthEnabled } from "@/features/auth/constants";
-import { useSignup } from "@/features/auth/hooks/use-auth";
-import { signupSchema } from "@/features/auth/schemas/auth-schemas";
+import { useSignup } from "@/features/auth/hooks";
+import { signupSchema } from "@/features/auth/schemas";
 import { startGoogleSignIn } from "@/features/auth/utils/google";
 
 export function SignupForm() {

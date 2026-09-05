@@ -6,10 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  useResendVerification,
-  useVerifyEmail,
-} from "@/features/auth/hooks/use-auth";
+import { useResendVerification, useVerifyEmail } from "@/features/auth/hooks";
 import { getAuthErrorData } from "@/features/auth/utils/auth-errors";
 
 function TokenVerification({ token }: { token: string }) {

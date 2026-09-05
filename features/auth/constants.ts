@@ -26,5 +26,8 @@ export const ACCOUNT_SUSPENDED_MESSAGE =
   "Account is suspended. Please contact support.";
 
 export function isGoogleAuthEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+  return (
+    process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" &&
+    process.env.NEXT_PUBLIC_DEMO_MODE !== "true"
+  );
 }
