@@ -2,7 +2,8 @@
 
 A neutral Next.js 16 foundation for applications that need typed data access,
 accessible forms, secure session restoration, light/dark theming, reusable UI
-primitives, an optional demo adapter, and Cloudflare Workers deployment.
+primitives, an optional demo adapter, optional multi-app workspaces, and
+Cloudflare Workers deployment.
 
 ## Stack
 
@@ -33,6 +34,7 @@ exercise the neutral auth UI without a backend.
 
 | Command                | Purpose                                |
 | ---------------------- | -------------------------------------- |
+| `npm run apps`         | List registered application variants   |
 | `npm run dev`          | Start the development server           |
 | `npm run build`        | Create a Next.js build                 |
 | `npm run start`        | Serve a completed build                |
@@ -45,8 +47,14 @@ exercise the neutral auth UI without a backend.
 | `npm run deploy`       | Build and deploy through OpenNext      |
 
 See [setup](docs/setup.md), [architecture](docs/architecture.md),
-[authentication](docs/authentication.md), [folder responsibilities](docs/folder-structure.md),
-and [code conventions](docs/code-style.md).
+[authentication](docs/authentication.md),
+[optional multi-app workspaces](docs/multi-app.md),
+[folder responsibilities](docs/folder-structure.md), and
+[code conventions](docs/code-style.md).
+
+The repository remains a conventional single application unless multi-app mode
+is adopted. After registering an additional application, select it at build time
+with `APP_VARIANT=admin npm run build`.
 
 ## Customize a new application
 

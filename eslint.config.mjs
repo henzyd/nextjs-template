@@ -6,11 +6,11 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   globalIgnores([
-    ".next/**",
-    ".open-next/**",
-    ".wrangler/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    "**/.next/**",
+    "**/.open-next/**",
+    "**/.wrangler/**",
+    "**/out/**",
+    "**/build/**",
+    "**/next-env.d.ts",
   ]),
 ]);

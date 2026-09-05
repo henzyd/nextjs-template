@@ -1,10 +1,10 @@
-/node_modules
-/.next/
-/.open-next/
-/.wrangler/
-/out/
-/build/
-/coverage/
+node_modules/
+.next/
+.open-next/
+.wrangler/
+out/
+build/
+coverage/
 
 .DS_Store
 *.pem
