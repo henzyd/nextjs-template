@@ -1,16 +1,16 @@
 # Next.js Application Template
 
 A neutral Next.js 16 foundation for applications that need typed data access,
-forms, secure session restoration, reusable UI primitives, and optional
-Cloudflare Workers deployment.
+accessible forms, secure session restoration, light/dark theming, reusable UI
+primitives, an optional demo adapter, and Cloudflare Workers deployment.
 
 ## Stack
 
 - Next.js 16 App Router, React 19, and strict TypeScript
-- Tailwind CSS v4 with semantic theme variables
-- TanStack Query v5 for server state and hydration
-- Axios with bounded retries, bearer injection, and single-flight refresh
-- Formik and Yup for forms and validation
+- Tailwind CSS v4 with neutral semantic tokens and `next-themes`
+- TanStack Query v5 with request-safe server hydration
+- Axios with bounded retries, in-memory bearer injection, and single-flight refresh
+- Formik and Yup with reusable input, textarea, select, and autocomplete fields
 - shadcn-style Radix primitives, Lucide icons, and Sonner notifications
 - OpenNext and Wrangler for optional Cloudflare deployment
 
@@ -24,41 +24,40 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The default development URL is `http://localhost:3000`.
+The default development URL is `http://localhost:3000`. The template builds
+without an API; successful live authentication requires the backend contract in
+[authentication](docs/authentication.md). Set `NEXT_PUBLIC_DEMO_MODE=true` to
+exercise the neutral auth UI without a backend.
 
 ## Commands
 
-| Command                | Purpose                                          |
-| ---------------------- | ------------------------------------------------ |
-| `npm run dev`          | Start the development server                     |
-| `npm run build`        | Create a Next.js build                           |
-| `npm run start`        | Serve a completed build                          |
-| `npm run format`       | Format authored files                            |
-| `npm run format:check` | Check formatting without writing                 |
-| `npm run lint`         | Run ESLint                                       |
-| `npm run typecheck`    | Run TypeScript without emitting                  |
-| `npm run check`        | Run formatting, lint, types, and build           |
-| `npm run preview`      | Build and preview through OpenNext               |
-| `npm run deploy`       | Build and deploy through OpenNext                |
-| `npm run upload`       | Upload a Worker version without shifting traffic |
+| Command                | Purpose                                |
+| ---------------------- | -------------------------------------- |
+| `npm run dev`          | Start the development server           |
+| `npm run build`        | Create a Next.js build                 |
+| `npm run start`        | Serve a completed build                |
+| `npm run format`       | Format authored files                  |
+| `npm run format:check` | Check formatting without writing       |
+| `npm run lint`         | Run ESLint                             |
+| `npm run typecheck`    | Run TypeScript without emitting        |
+| `npm run check`        | Run formatting, lint, types, and build |
+| `npm run preview`      | Build and preview through OpenNext     |
+| `npm run deploy`       | Build and deploy through OpenNext      |
 
 See [setup](docs/setup.md), [architecture](docs/architecture.md),
 [authentication](docs/authentication.md), [folder responsibilities](docs/folder-structure.md),
 and [code conventions](docs/code-style.md).
 
-## Start a new project from this template
+## Customize a new application
 
-- Change the package name and version in `package.json`.
-- Replace application metadata and visible placeholder names.
-- Add a favicon or logo only when the new identity is defined.
-- Adjust semantic theme variables in `app/globals.css`.
-- Configure public and server-only API URLs.
-- Choose an auth cookie name; keep it server-only.
-- Reconcile every auth request and response with the external backend contract.
-- Enable and configure Google OAuth only when the backend flow exists.
-- Replace the Worker name and review the Cloudflare compatibility date.
-- Remove optional dependencies and primitives the application will not use.
-- Run `npm install` to refresh the lockfile, then run `npm run check`.
+- Replace package metadata, visible placeholder names, and Worker name.
+- Adjust the semantic variables in `app/globals.css`; components should not need
+  palette edits.
+- Configure public and server-only API URLs and choose a server-only cookie name.
+- Reconcile auth DTOs with the real backend before enabling OAuth.
+- Remove unused optional primitives and deployment dependencies.
+- Keep `components.json` in RSC mode when adding shadcn components.
+- Run `npm install` after dependency changes, then `npm run check`.
 
-Auth screens compile without a backend, but successful authentication requires
-the external endpoints documented in [authentication](docs/authentication.md).
+The complete production-readiness checklist is under
+[Additional configuration when adopting the template](docs/setup.md#additional-configuration-when-adopting-the-template).

@@ -1,91 +1,85 @@
 # Architecture
 
-## Rendering and routing
+## Runtime boundaries
 
-The App Router makes pages and layouts Server Components by default. Keep them
-on the server for static markup, metadata, secret-bearing work, and initial data
-loading. Add `"use client"` at the narrowest boundary that needs state, effects,
-event handlers, browser APIs, Formik, or TanStack Query hooks.
+The App Router owns routes, layouts, metadata, and Route Handlers. Pages and
+layouts stay as Server Components by default. Interactive route UI belongs in
+the route's `_sections/` directory and marks the narrowest required client
+boundary. Reusable code lives outside `app/`.
 
-Route groups organize layouts without changing URLs. A `page.tsx` should stay
-small and compose route-only components from its adjacent `_sections/`
-directory. Move a component to `components/` when multiple routes use it.
+`app/layout.tsx` uses `next/font`, static metadata, and one client composition
+boundary. Provider order is intentional:
 
-## Provider bootstrap order
+1. theme provider;
+2. browser QueryClient provider;
+3. session bootstrap and auth state;
+4. auth gate;
+5. tooltip provider and application content;
+6. offline/demo indicators and toasts;
+7. development-only React Query tools.
 
-`app/layout.tsx` is a Server Component and mounts one client boundary:
+Provider clients and stores are stable across renders. Query Devtools are loaded
+only in development.
 
-1. `QueryClientProvider` establishes the browser cache.
-2. `SessionProvider` performs session restoration once.
-3. `AuthGateProvider` exposes a reusable sign-in gate.
-4. Application content renders.
-5. Sonner and development-only query tools mount beside the content.
+## Feature and data boundaries
 
-Keeping this order lets session bootstrap populate the query cache before
-authenticated consumers request the current user.
+Feature modules use a predictable flat shape:
 
-## Data boundary
+- `api.ts`: typed static service methods, endpoints, HTTP, and response unwrapping;
+- `hooks.ts`: queries, mutations, cache behavior, cancellation, and notifications;
+- `types.ts`: DTOs, envelopes, and domain types;
+- `constants.ts`: feature constants and endpoints;
+- `schemas.ts`: centralized Yup schemas;
+- `demo.ts`: optional deterministic feature adapter;
+- `server/`: server-only Next.js helpers.
 
-External application data follows this direction:
+External application data always follows:
 
 ```text
-component → query or mutation hook → feature service → HTTP client → API
+component → feature hook → feature service → HTTP client → backend
 ```
 
-Components do not call Axios or external `fetch` directly. Services own paths,
-DTOs, response normalization, and abort-signal forwarding. Hooks own cache
-keys, stale times, invalidation, optimistic behavior, and user notifications.
-Route Handlers may use server-side `fetch` when bridging authentication.
+Route Handlers are the deliberate exception for server credential bridging.
+Services never own React state, navigation, toasts, or cache invalidation. Query
+functions forward their abort signal. Demo branches live at the service boundary,
+so components and hooks do not branch between live and demo modes.
 
-## QueryClient lifecycle
+## Query cache lifecycle
 
-`getQueryClient()` returns a fresh client when invoked on the server, preventing
-one request from observing another request's cache. In the browser it returns a
-stable singleton. Client components access that instance through
-`useQueryClient`; they do not import a client from the provider module.
+`createQueryKeys(entity)` returns distinct `all`, `list(params)`, and `detail(id)`
+shapes. Features extend the centralized `QUERY_KEYS` object rather than writing
+arrays inline.
 
-For data needed at first paint, a Server Component creates its request-local
-client, calls `prefetchQuery` or `fetchQuery`, and passes `dehydrate(client)` to
-`HydrationBoundary`. The client hook uses the same centralized key and reads the
-hydrated result. For browser-only data, call the service from `useQuery` or
-`useInfiniteQuery` and forward the query function's abort signal.
+`getQueryClient()` creates a fresh cache for every server request and one stable
+singleton in the browser. Server Components may prefetch with that helper, then
+pass `dehydrate(queryClient)` to `HydrationBoundary`. Client mutations obtain the
+cache with `useQueryClient()`.
 
-All keys originate in `lib/utils/query-keys.ts`. Extend the factory by feature:
-
-```ts
-records: {
-  all: ["records"] as const,
-  list: (filters: Record<string, unknown>) =>
-    ["records", "list", filters] as const,
-  detail: (id: string) => ["records", "detail", id] as const,
-}
-```
-
-Invalidate the narrowest key that represents changed data. An optimistic
-mutation should cancel matching queries, snapshot prior data, apply the
-temporary cache value, restore the snapshot on error, and invalidate on settle.
-Do not add demonstration mutations to the empty starter.
+Invalidate the narrowest affected key. Optimistic mutations should cancel
+matching queries, snapshot prior data, apply the temporary value, roll it back on
+error, and invalidate on settle. TanStack Query's browser stale time is separate
+from the Next.js server cache lifecycle.
 
 ## HTTP and errors
 
-`lib/config/axios.ts` creates distinct public and authenticated clients with a
-15-second timeout. Both retry a network failure or server error once with
-exponential delay; neither retries ordinary client errors. The authenticated
-client also attaches the in-memory bearer value, marks a request after its
-first auth retry, and joins one shared refresh promise when concurrent requests
-receive `401` responses.
+`lib/config/axios.ts` creates public and authenticated clients with a 15-second
+timeout. Network failures and eligible `5xx` responses retry once with exponential
+delay; cancellations, authentication failures, and ordinary `4xx` responses do
+not retry. The private client attaches only the in-memory access token and joins
+one refresh request when concurrent calls receive `401`.
 
-Services can pass an Axios request config containing `signal`. Hooks send
-failures to `handleApiError`, optionally overriding individual status handlers.
-Sonner wrappers keep notification calls consistent.
+Common `message`, `detail`, `error`, `non_field_errors`, and `nonFieldErrors`
+payloads are normalized by the shared error helpers. Hooks decide which failures
+need feature-specific notifications.
 
 ## Adding a feature
 
-1. Add explicit DTO and response types under `features/<feature>/`.
-2. Add a service module containing all network calls.
-3. Extend the centralized query-key factory.
-4. Add query and mutation hooks with cancellation, cache, and error behavior.
-5. Build reusable UI under `components/`; keep one-route UI in `_sections/`.
-6. Compose the route in a thin Server Component page.
-7. Add server prefetch and hydration only when first paint or metadata needs it.
-8. Document new environment values and run the complete check suite.
+1. Add its explicit types and constants.
+2. Add static service methods in `api.ts`, including abort-signal forwarding.
+3. Extend `QUERY_KEYS` with the shared factory.
+4. Add client hooks in `hooks.ts` with cache and error behavior.
+5. Add optional schemas and a feature-local demo adapter.
+6. Build from `components/ui` → `components/forms` or `components/shared` → route
+   `_sections`.
+7. Compose a thin Server Component page and add hydration only when first paint
+   benefits from it.

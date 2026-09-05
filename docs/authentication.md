@@ -1,65 +1,52 @@
 # Authentication
 
-## Security model
+## Security boundary
 
 The browser receives a short-lived access token and keeps it only in module
-memory. `setAccessToken` also mirrors it into the authenticated Axios default
-header. A reload clears both copies.
+memory. `setAccessToken` mirrors it into the authenticated Axios default header.
+A reload clears both copies.
 
-The external backend's long-lived credential is held only in the `app_auth`
-cookie by default. Route Handlers create it with `httpOnly`, `sameSite: "lax"`,
-path `/`, and `secure` in production. Client modules cannot read it. Override
-the name with the server-only `AUTH_COOKIE_NAME` variable.
+The external backend's long-lived credential is stored only in the server-managed
+`app_auth` cookie by default. Route Handlers create it with `httpOnly`,
+`sameSite: "lax"`, path `/`, and `secure` in production. Client modules cannot
+read it. `AUTH_COOKIE_NAME` may override the name on the server. No bridge response
+returns the long-lived credential.
 
-No auth bridge response includes the long-lived credential.
+## Live lifecycle
 
-## Lifecycle
+1. Login posts credentials to `/api/auth/login`. The Route Handler calls the
+   backend, strips `refreshToken`/`authToken`, stores that value in the HTTP-only
+   cookie, and returns only the access token and safe user data.
+2. `SessionProvider` calls `/api/auth/refresh` once after hydration, restores the
+   access token, then fills the `auth.me` query through `AuthService.getMe`.
+3. The private Axios client reads the in-memory access token for each request.
+   Concurrent `401` responses join one refresh promise; each original request is
+   retried at most once.
+4. Failed refresh clears memory and auth queries, calls the logout bridge to
+   revoke/delete the cookie, and redirects to a validated local login path.
+5. Explicit logout performs the same client cleanup even if backend revocation
+   fails. External, protocol-relative, and backslash-based return paths are
+   rejected.
 
-### Login
+Google OAuth is hidden unless `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`. The backend
+owns provider state and authorization. Its callback supplies a code to the Next
+Route Handler, which exchanges it server-side and writes only the HTTP-only
+credential.
 
-The browser posts `LoginInput` to `POST /api/auth/login`. The handler forwards
-the JSON body to `POST /auth/login` on `API_BASE_URL`, removes the long-lived
-credential from the backend response, writes the cookie, and returns only the
-access token and user. The login hook puts the user under `auth.me` and marks
-the session authenticated.
+## Demo lifecycle
 
-### Reload restoration
+`NEXT_PUBLIC_DEMO_MODE=true` swaps every retained `AuthService` operation for the
+typed adapter in `features/auth/demo.ts`. It uses deterministic `.test` data and a
+synthetic access value in module memory only. It never calls live endpoints,
+creates an auth cookie, or weakens the production Route Handlers. OAuth controls
+are disabled in demo mode. The adapter is for UI development and demonstrations,
+not authentication security.
 
-`SessionProvider` mounts once beneath the query provider. It posts to
-`/api/auth/refresh`, restores the access token, then prefetches `GET /auth/me`
-through the authenticated Axios client. Concurrent development mounts share
-one bootstrap promise.
-
-### Authenticated requests and expiry
-
-The private Axios request interceptor reads the in-memory token for every
-request. On `401`, the response interceptor marks the request, starts or joins
-one refresh promise, updates the token, and retries exactly once. A second
-`401` or failed refresh clears the token and auth cache, asks the logout bridge
-to remove the cookie, and redirects to login with a validated local return
-path. External, protocol-relative, and backslash-based destinations are
-rejected.
-
-### Logout
-
-`POST /api/auth/logout` sends a best-effort revocation request to the backend
-and always deletes the HTTP-only cookie. Client cleanup runs even if that call
-fails: token, session state, and auth queries are cleared before navigation.
-
-### Google OAuth
-
-Set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` only after configuring the backend.
-The browser navigates to `/api/auth/google`, which redirects to the backend's
-OAuth initiation endpoint. The backend owns provider state and authorization.
-The provider must return a `code` to `/api/auth/google/callback`; that handler
-posts the code to the exchange endpoint, writes the returned long-lived
-credential, and redirects to the app. Session bootstrap then obtains a fresh
-access token. The template does not invent provider state or credentials.
+Future feature demos belong beside their service and must keep the same public
+return type as the live method. The shared `lib/utils/demo.ts` contains only the
+flag accessor and delay mechanic.
 
 ## Required backend contract
-
-All JSON errors should use `{ "message": "..." }` and an appropriate HTTP
-status. Request and successful response bodies are:
 
 | Operation                        | Request                                     | Successful response                   |
 | -------------------------------- | ------------------------------------------- | ------------------------------------- |
@@ -69,17 +56,11 @@ status. Request and successful response bodies are:
 | `POST /auth/login`               | `{ email, password }`                       | `{ accessToken, user, refreshToken }` |
 | `POST /auth/refresh`             | `{ refreshToken }`                          | `{ accessToken, refreshToken? }`      |
 | `POST /auth/logout`              | `{ refreshToken }`                          | Any successful JSON body              |
-| `GET /auth/me`                   | `Authorization: Bearer <accessToken>`       | `UserProfile`                         |
+| `GET /auth/me`                   | bearer access token                         | `UserProfile`                         |
 | `POST /auth/forgot-password`     | `{ email }`                                 | `{ message }`                         |
 | `POST /auth/reset-password`      | `{ token, password }`                       | `{ message }`                         |
-| `GET /auth/google`               | Browser navigation                          | Provider redirect                     |
 | `POST /auth/google/exchange`     | `{ code }`                                  | `{ refreshToken }`                    |
 
 `UserProfile` requires `id`, `email`, `firstName`, and nullable `lastName`;
-`role` and `status` are optional. For compatibility with the extracted flow,
-the bridge accepts `authToken` as an alias for the long-lived
-`refreshToken`. Both names are stripped before any response reaches browser
-code. Change the alias deliberately if the real backend differs.
-
-The template has no authentication backend. A successful runtime flow depends
-on implementing and configuring this contract.
+`role` and `status` are optional. The bridge accepts `authToken` as a deliberate
+legacy alias for `refreshToken` and strips both names from browser responses.

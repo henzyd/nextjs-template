@@ -2,39 +2,40 @@
 
 ## TypeScript and imports
 
-Strict mode is required. Type request DTOs, responses, query results, and error
-boundaries; avoid `any`. Use the `@/*` alias across directory boundaries.
+Strict mode is required. Type DTOs, responses, query results, errors, and generic
+component contracts; avoid `any`. Use `@/*` across directory boundaries. Keep
+browser-only calls behind client modules or runtime guards.
 
 ## Components and routes
 
-- Default to Server Components.
-- Add `"use client"` only for interactive or browser-dependent code.
-- Keep pages short and place route-only UI in `_sections/`.
-- Move shared UI into `components/` and domain behavior into `features/`.
-- Reuse `components/ui` before adding a primitive. Prefer the configured
-  shadcn CLI and its Radix composition conventions.
-- Use Lucide for interface icons.
+- Default to Server Components and serializable props.
+- Add `"use client"` only for hooks, context, handlers, Formik, Radix interaction,
+  or browser APIs.
+- Keep pages short and route-only UI in `_sections/`.
+- Reuse `components/ui` before adding a primitive. Add shadcn components with the
+  configured RSC aliases and Lucide icons.
+- Use `components/shared` only for composed, cross-route, domain-neutral UI.
+- Preserve labels, descriptions, error IDs, focus behavior, keyboard behavior,
+  and screen-reader text.
 
 ## Data and forms
 
-Keep the component → hook → service → network direction. Use centralized query
-keys and forward abort signals. Mutations own invalidation or optimistic cache
-logic. Use Formik with schemas from `features/<feature>/schemas`; use
-`FormField` for standard inputs so labels, adornments, required state, and
-errors remain accessible and consistent.
+Keep component → hook → service → network direction. Hooks own query keys,
+invalidation, optimistic state, and notifications. Services own transport and
+normalization and forward abort signals for reads.
 
-## Styling
+Use Formik fields from `components/forms/fields` and schemas from the feature's
+`schemas.ts`. `FormField`, `TextareaField`, `SelectField`, and
+`AutocompleteField` share `FormFieldWrapper` for accessible labels, descriptions,
+required state, and errors.
 
-Tailwind v4 reads semantic variables from `app/globals.css`. Prefer
-`bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`,
-`bg-primary`, `text-destructive`, `border-border`, and `ring-ring`. Update a
-token when the new application needs a repeated color. Do not embed identity
-colors in components.
+## Styling and formatting
 
-## Formatting and comments
+Use semantic utilities such as `bg-background`, `bg-card`, `text-foreground`,
+`text-muted-foreground`, `bg-primary`, `text-success`, `text-destructive`,
+`border-border`, and `ring-ring`. Customize repeated colors in `app/globals.css`,
+including both light and dark values. Do not hardcode identity colors in reusable
+components.
 
-Prettier uses an 80-column width and sorts Tailwind classes. Run
-`npm run format` only on intentional changes. Comments should explain a
-security property, lifecycle constraint, concurrency decision, framework
-boundary, or non-obvious edge case; they should not narrate straightforward
-code.
+Prettier uses an 80-column width and sorts Tailwind classes. Comments should
+explain security, runtime boundaries, concurrency, or non-obvious edge cases.
