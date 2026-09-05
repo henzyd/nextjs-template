@@ -1,5 +1,17 @@
 # Architecture
 
+## Application topology
+
+The repository is one root Next.js application by default. The optional
+multi-app mode adds independent projects under `apps/` and reusable npm workspace
+packages under `packages/`. `app-variants.config.mjs` selects exactly one project
+for development, type checking, building, serving, previewing, or deployment.
+
+Each application owns its filesystem route tree and application composition.
+Only genuinely reusable UI, features, services, hooks, and utilities belong in
+workspace packages. `APP_VARIANT` is a build/deployment selector, not a user-role
+or authorization mechanism. See [Optional Multi-App Workspace](multi-app.md).
+
 ## Runtime boundaries
 
 The App Router owns routes, layouts, metadata, and Route Handlers. Pages and
