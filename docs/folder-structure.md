@@ -26,9 +26,12 @@ lib/utils/                   Keys, demo core, errors, notifications, helpers
 types/                       Shared cross-feature API types
 docs/                        Architecture and operating guidance
 public/                      Deliberate neutral static assets only
-app-variants.config.mjs      Default and optional application build targets
-scripts/run-app.mjs          Validated Next.js/OpenNext target selector
-apps/                        Optional independent Next.js applications
+tenants.config.mjs           Tenant manifest and per-tenant build options
+config/next-app.ts           Shared Next.js configuration factory
+scripts/run-app.mjs          Application selector and CLI runner
+scripts/lib/tenants.mjs      Overlay merge that builds each tenant's project
+apps/                        Optional tenant route trees
+.tenants/                    Generated Next projects; gitignored
 packages/                    Optional shared npm workspace packages
 ```
 
@@ -40,7 +43,9 @@ behavior in `features/<feature>/`. Do not put reusable application modules under
 The component hierarchy is `ui` → `forms`/`shared` → route `_sections`. Do not
 create empty directories or retain old and new feature layouts simultaneously.
 
-`apps/` and `packages/` are intentionally absent in the default single-app
+`apps/` and `packages/` are intentionally absent in the default single-tenant
 template. Create them only when adopting the documented
-[multi-app workspace](multi-app.md). Do not duplicate shared code under each
-application; extract it into an explicitly exported workspace package.
+[multi-tenant setup](multi-tenant.md). Never edit `.tenants/`, which is
+generated. Do not duplicate shared code under each application; share it through
+the repository's own directories, or extract it into an explicitly exported
+workspace package.

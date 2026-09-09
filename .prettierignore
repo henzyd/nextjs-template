@@ -1,5 +1,6 @@
 .next/
 .open-next/
+.tenants/
 .wrangler/
 node_modules/
 out/

@@ -9,6 +9,9 @@ feature. This repository uses Next.js 16; consult the matching guides under
 - Pages and layouts are Server Components unless they require interactivity.
 - Keep `page.tsx` files as composition points. Put route-only UI in a colocated
   `_sections/` directory.
+- Routes live in `app/` for a single application. Under multi-tenant mode they
+  live in `apps/`: shared ones at its root, tenant-specific ones under
+  `apps/<tenant>/`. Never edit `.tenants/`, which is generated.
 - Keep the data path as component → hook → service → network.
 - Use flat feature modules: `api.ts`, `hooks.ts`, `types.ts`, `constants.ts`,
   optional `schemas.ts`/`demo.ts`, and an explicit `server/` boundary.

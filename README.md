@@ -2,7 +2,7 @@
 
 A neutral Next.js 16 foundation for applications that need typed data access,
 accessible forms, secure session restoration, light/dark theming, reusable UI
-primitives, an optional demo adapter, optional multi-app workspaces, and
+primitives, an optional demo adapter, optional multi-tenant applications, and
 Cloudflare Workers deployment.
 
 ## Stack
@@ -48,12 +48,12 @@ exercise the neutral auth UI without a backend.
 
 See [setup](docs/setup.md), [architecture](docs/architecture.md),
 [authentication](docs/authentication.md),
-[optional multi-app workspaces](docs/multi-app.md),
+[multi-tenant applications](docs/multi-tenant.md),
 [folder responsibilities](docs/folder-structure.md), and
 [code conventions](docs/code-style.md).
 
-The repository remains a conventional single application unless multi-app mode
-is adopted. After registering an additional application, select it at build time
+The repository remains a conventional single application unless tenants are
+adopted. After naming a tenant in `tenants.config.mjs`, select it at build time
 with `APP_VARIANT=admin npm run build`.
 
 ## Customize a new application

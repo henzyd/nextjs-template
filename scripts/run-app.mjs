@@ -1,16 +1,21 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, realpathSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { watch } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
-import { appVariants } from "../app-variants.config.mjs";
+import {
+  SINGLE_TENANT,
+  defaultVariant,
+  materialiseTenant,
+  repositoryRoot,
+  singleTenantExists,
+  tenantNames,
+  watchRoots,
+} from "./lib/tenants.mjs";
 
 const require = createRequire(import.meta.url);
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const action = process.argv[2];
 const forwardedArguments = process.argv.slice(3);
-const selectedVariant = process.env.APP_VARIANT?.trim() || "default";
 
 const nextCli = require.resolve("next/dist/bin/next");
 const openNextEntry = require.resolve("@opennextjs/cloudflare");
@@ -52,10 +57,24 @@ function fail(message) {
 }
 
 function listVariants() {
-  console.log("Configured application variants:");
+  console.log("Available applications:");
 
-  for (const [name, path] of Object.entries(appVariants)) {
-    console.log(`- ${name}: ${path}`);
+  const fallback = defaultVariant();
+
+  if (singleTenantExists()) {
+    console.log(`- ${SINGLE_TENANT}: . (single tenant)`);
+  }
+
+  for (const name of tenantNames()) {
+    console.log(`- ${name}: apps/${name}`);
+  }
+
+  if (fallback) {
+    console.log(`\nSelected when APP_VARIANT is unset: ${fallback}`);
+  }
+
+  if (!singleTenantExists() && tenantNames().length === 0) {
+    console.log("- none. Create app/ or a tenant under apps/.");
   }
 }
 
@@ -73,81 +92,145 @@ if (!Object.hasOwn(actions, action)) {
   );
 }
 
-if (!Object.hasOwn(appVariants, selectedVariant)) {
+const requested = process.env.APP_VARIANT?.trim();
+const selected = requested || defaultVariant();
+
+if (!selected) {
   listVariants();
   fail(
-    `APP_VARIANT=${JSON.stringify(selectedVariant)} is not registered in ` +
-      "app-variants.config.mjs."
+    "no application selected. Set APP_VARIANT, or create app/ at the " +
+      "repository root for a single-tenant build."
   );
 }
 
-const configuredPath = appVariants[selectedVariant];
+let projectRoot;
 
-if (typeof configuredPath !== "string" || configuredPath.trim() === "") {
-  fail(
-    `the path registered for ${JSON.stringify(selectedVariant)} is invalid.`
+if (selected === SINGLE_TENANT) {
+  if (!singleTenantExists()) {
+    listVariants();
+    fail(
+      "the single-tenant application needs app/ or src/app/ at the " +
+        "repository root."
+    );
+  }
+  projectRoot = repositoryRoot;
+  console.log("Using the single-tenant application at the repository root.");
+} else {
+  if (!tenantNames().includes(selected)) {
+    listVariants();
+    fail(
+      `APP_VARIANT=${JSON.stringify(selected)} is not listed in ` +
+        "tenants.config.mjs."
+    );
+  }
+
+  try {
+    projectRoot = materialiseTenant(selected).projectRoot;
+  } catch (error) {
+    fail(error.message);
+  }
+
+  console.log(
+    `Using tenant ${JSON.stringify(selected)} from apps/${selected}.`
   );
 }
 
-const applicationRoot = resolve(repositoryRoot, configuredPath);
-const pathFromRepository = relative(repositoryRoot, applicationRoot);
+/**
+ * Keeps the generated tree in step with apps/ while the dev server runs.
+ *
+ * Editing a file needs nothing: the link already points at it, and the change
+ * reaches the dev server through the link. Adding or removing a route does
+ * change the tree, and Next does not register a route that appears in a
+ * generated project after startup, so those restart the dev server.
+ */
+function startWatcher(onStructuralChange) {
+  if (selected === SINGLE_TENANT) return () => {};
 
-if (pathFromRepository === ".." || pathFromRepository.startsWith(`..${sep}`)) {
-  fail("application paths must stay inside the repository.");
+  const watchers = [];
+  let pending;
+
+  for (const root of watchRoots()) {
+    try {
+      watchers.push(
+        watch(root, { recursive: true }, () => {
+          clearTimeout(pending);
+          pending = setTimeout(() => {
+            try {
+              if (materialiseTenant(selected).changed) onStructuralChange();
+            } catch (error) {
+              console.error(
+                `Could not refresh the tenant tree: ${error.message}`
+              );
+            }
+          }, 120);
+        })
+      );
+    } catch {
+      console.warn(
+        "Could not watch apps/ for new files. Restart the dev server after " +
+          "adding a route."
+      );
+    }
+  }
+
+  return () => {
+    clearTimeout(pending);
+    for (const watcher of watchers) watcher.close();
+  };
 }
 
-if (!existsSync(applicationRoot)) {
-  fail(
-    `${JSON.stringify(configuredPath)} does not exist. Create the app before ` +
-      "registering it."
-  );
+let activeChild = null;
+
+function run(cli, baseArguments) {
+  return new Promise((resolveRun) => {
+    const child = spawn(
+      process.execPath,
+      [cli, ...baseArguments, ...forwardedArguments],
+      {
+        cwd: projectRoot,
+        env: { ...process.env, APP_VARIANT: selected },
+        stdio: "inherit",
+      }
+    );
+
+    activeChild = child;
+    const forward = (signal) => child.kill(signal);
+    process.on("SIGINT", forward);
+    process.on("SIGTERM", forward);
+
+    child.on("error", (error) => fail(error.message));
+    child.on("close", (code) => {
+      process.off("SIGINT", forward);
+      process.off("SIGTERM", forward);
+      activeChild = null;
+      resolveRun(code ?? 0);
+    });
+  });
 }
 
-const repositoryRealRoot = realpathSync(repositoryRoot);
-const applicationRealRoot = realpathSync(applicationRoot);
-const realPathFromRepository = relative(
-  repositoryRealRoot,
-  applicationRealRoot
-);
+if (action === "dev") {
+  let restarting = false;
 
-if (
-  realPathFromRepository === ".." ||
-  realPathFromRepository.startsWith(`..${sep}`)
-) {
-  fail("application paths must not resolve outside the repository.");
+  const stopWatching = startWatcher(() => {
+    if (!activeChild) return;
+    restarting = true;
+    console.log("\nRoutes changed under apps/. Restarting the dev server...");
+    activeChild.kill("SIGTERM");
+  });
+
+  const [[devCli, ...devArguments]] = actions.dev;
+
+  for (;;) {
+    restarting = false;
+    const code = await run(devCli, devArguments);
+    if (restarting) continue;
+
+    stopWatching();
+    process.exit(code);
+  }
 }
-
-if (
-  !existsSync(resolve(applicationRoot, "app")) &&
-  !existsSync(resolve(applicationRoot, "src/app"))
-) {
-  fail(
-    `${JSON.stringify(configuredPath)} does not contain an app/ or src/app/ ` +
-      "directory."
-  );
-}
-
-console.log(
-  `Using application variant ${JSON.stringify(selectedVariant)} from ` +
-    `${JSON.stringify(configuredPath)}.`
-);
 
 for (const [cli, ...baseArguments] of actions[action]) {
-  const result = spawnSync(
-    process.execPath,
-    [cli, ...baseArguments, ...forwardedArguments],
-    {
-      cwd: applicationRoot,
-      env: { ...process.env, APP_VARIANT: selectedVariant },
-      stdio: "inherit",
-    }
-  );
-
-  if (result.error) {
-    fail(result.error.message);
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+  const code = await run(cli, baseArguments);
+  if (code !== 0) process.exit(code);
 }
